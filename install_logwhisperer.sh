@@ -60,6 +60,24 @@ else
     echo "Ollama already installed."
 fi
 
+# Wait for Ollama to be ready
+echo "Waiting for Ollama to start..."
+
+MAX_ATTEMPTS=10
+for i in $(seq 1 $MAX_ATTEMPTS); do
+    if curl --silent http://localhost:11434 >/dev/null 2>&1; then
+        echo "Ollama is up!"
+        break
+    fi
+    echo "⌛ Ollama not ready yet... (${i}/${MAX_ATTEMPTS})"
+    sleep 2
+done
+
+# Pull model
+echo "📥 Pulling model: $INSTALL_MODEL..."
+ollama pull "$INSTALL_MODEL"
+
+
 # Pull requested model
 echo "Pulling model: $INSTALL_MODEL..."
 ollama pull "$INSTALL_MODEL"
