@@ -33,5 +33,5 @@ chmod +x install_logwhisperer.sh
 
 ## Troubleshooting
 
-* You may have to install venv if you haven't already.  If you run the installer and it fails to activate the venv, just rm -rf venv and try the installer again.
+* You may have to install venv if you haven't already.  If you install venv, you will need to rm -rf venv and then run the installer again to clear the environment.
 * journalctl is the default method, because it's better, but if you're running this on WSL for some reason, you will need to switch to file in either the config.yaml or as a flag at runtime.
