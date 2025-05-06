@@ -1,0 +1,6 @@
+# config.yaml
+
+source: journalctl  # or "file"
+log_file_path: /var/log/syslog  # only used if source == file
+priority: err       # journalctl log level: emerg, alert, crit, err, warning, notice, info, debug
+entries: 500        # number of log entries to fetch

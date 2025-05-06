@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Logs and reports
+reports/
+logwhisperer.log
+
+# Environment/config overrides
+.env
