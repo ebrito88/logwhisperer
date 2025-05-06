@@ -1,6 +1,6 @@
 # LogWhisperer
 
-Join my discocrd for support or community!
+Join my discord for support or community!
 
 https://discord.gg/KureHBHKgx
 
