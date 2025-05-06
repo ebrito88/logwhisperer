@@ -18,7 +18,7 @@ done
 echo "Starting LogWhisperer installer..."
 echo "Model to install: $INSTALL_MODEL"
 
-# 🧪 Check OS
+# OS Check
 OS_TYPE="$(uname)"
 echo "Detected OS: $OS_TYPE"
 if [[ "$OS_TYPE" != "Linux" && "$OS_TYPE" != "Darwin" ]]; then
