@@ -29,6 +29,7 @@ git clone https://github.com/binary-knight/logwhisperer
 cd logwhisperer
 chmod +x install_logwhisperer.sh
 ./install_logwhisperer.sh 
+```
 
 ## Troubleshooting
 
