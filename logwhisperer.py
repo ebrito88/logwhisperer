@@ -8,7 +8,7 @@ import requests
 from datetime import datetime
 from spinner import Spinner
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 
 def save_summary_to_markdown(summary, messages):
     if not os.path.exists("reports"):
