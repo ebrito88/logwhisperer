@@ -69,16 +69,11 @@ for i in $(seq 1 $MAX_ATTEMPTS); do
         echo "Ollama is up!"
         break
     fi
-    echo "⌛ Ollama not ready yet... (${i}/${MAX_ATTEMPTS})"
+    echo "Ollama not ready yet... (${i}/${MAX_ATTEMPTS})"
     sleep 2
 done
 
 # Pull model
-echo "📥 Pulling model: $INSTALL_MODEL..."
-ollama pull "$INSTALL_MODEL"
-
-
-# Pull requested model
 echo "Pulling model: $INSTALL_MODEL..."
 ollama pull "$INSTALL_MODEL"
 
