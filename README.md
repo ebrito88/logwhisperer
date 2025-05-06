@@ -20,7 +20,7 @@ It uses local LLMs like [Mistral](https://ollama.com/library/mistral) or [Phi](h
 
 ---
 
-## ⚙️ Installation
+## ⚙Installation
 
 Clone the repo and run the install script:
 
@@ -28,6 +28,9 @@ Clone the repo and run the install script:
 git clone https://github.com/binary-knight/logwhisperer
 cd logwhisperer
 chmod +x install_logwhisperer.sh
-./install_logwhisperer.sh --model mistral
+./install_logwhisperer.sh 
 
-NOTE: You may have to install venv if you haven't already.  If you run the installer and it fails to activate the venv, just rm -rf venv and try the installer again.  
+## Troubleshooting
+
+* You may have to install venv if you haven't already.  If you run the installer and it fails to activate the venv, just rm -rf venv and try the installer again.
+* journalctl is the default method, because it's better, but if you're running this on WSL for some reason, you will need to switch to file in either the config.yaml or as a flag at runtime.
