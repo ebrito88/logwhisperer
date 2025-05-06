@@ -26,3 +26,4 @@ cd logwhisperer
 chmod +x install_logwhisperer.sh
 ./install_logwhisperer.sh --model mistral
 
+NOTE: You may have to install venv if you haven't already.  If you run the installer and it fails to activate the venv, just rm -rf venv and try the installer again.  
