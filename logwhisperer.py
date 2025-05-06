@@ -101,6 +101,7 @@ def main():
     if source == "journalctl":
         logs = read_from_journalctl(priority, entries)
     elif source == "file":
+        path = args.logfile or config.get("log_file_path", "/var/log/syslog")
         logs = read_from_file(path, entries)
     else:
         print("Invalid source: must be 'journalctl' or 'file'")
@@ -112,7 +113,7 @@ def main():
         print("No log messages found.")
         sys.exit(0)
 
-    print(f"\n🧠 {len(messages)} log entries retrieved.\n")
+    print(f"\n{len(messages)} log entries retrieved.\n")
 
     spinner = Spinner("Summarizing log entries")
     spinner.start()
@@ -121,8 +122,8 @@ def main():
     finally:
         spinner.stop()
 
-    print("✅ Done!\n")
-    print("📋 Summary:\n")
+    print("Done!\n")
+    print("Summary:\n")
     print(summary)
     save_summary_to_markdown(summary, messages)
 
