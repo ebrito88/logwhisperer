@@ -21,7 +21,7 @@ It uses local LLMs like [Mistral](https://ollama.com/library/mistral) or [Phi](h
 Clone the repo and run the install script:
 
 ```bash
-git clone https://github.com/yourname/logwhisperer
+git clone https://github.com/binary-knight/logwhisperer
 cd logwhisperer
 chmod +x install_logwhisperer.sh
 ./install_logwhisperer.sh --model mistral
