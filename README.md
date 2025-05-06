@@ -1,5 +1,9 @@
 # LogWhisperer
 
+Join my discocrd for support or community!
+
+https://discord.gg/KureHBHKgx
+
 LogWhisperer is a self-hosted, AI-powered log summarization tool for Linux servers.  
 It uses local LLMs like [Mistral](https://ollama.com/library/mistral) or [Phi](https://ollama.com/library/phi) via [Ollama](https://ollama.com) to interpret and summarize system logs — no cloud APIs or tokens required.
 
@@ -26,3 +30,4 @@ cd logwhisperer
 chmod +x install_logwhisperer.sh
 ./install_logwhisperer.sh --model mistral
 
+NOTE: You may have to install venv if you haven't already.  If you run the installer and it fails to activate the venv, just rm -rf venv and try the installer again.  
