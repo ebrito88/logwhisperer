@@ -1,0 +1,132 @@
+import yaml
+import subprocess
+import json
+import os
+import sys
+import argparse
+import requests
+from datetime import datetime
+from spinner import Spinner
+
+__version__ = "0.1.0"
+
+def save_summary_to_markdown(summary, messages):
+    if not os.path.exists("reports"):
+        os.makedirs("reports")
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    filepath = f"reports/log_summary_{timestamp}.md"
+
+    with open(filepath, "w") as f:
+        f.write(f"# Log Summary Report — {timestamp}\n\n")
+        f.write("## 🔍 Summary\n\n")
+        f.write(summary + "\n\n")
+        f.write("## 📜 Raw Log Messages (last 100)\n\n")
+        for msg in messages[-100:]:
+            f.write(f"- {msg}\n")
+
+    print(f"\n📁 Summary saved to `{filepath}`")
+
+def summarize_logs_with_ollama(messages, model="mistral"):
+    prompt = (
+        "You are a helpful Linux operations assistant. Summarize the following system log entries, "
+        "identify likely causes of errors, and recommend next steps if possible.\n\n"
+        + "\n".join(messages[-50:])  # last 50 messages
+    )
+
+    response = requests.post(
+        "http://localhost:11434/api/generate",
+        json={
+            "model": model,
+            "prompt": prompt,
+            "stream": False
+        }
+    )
+
+    if response.ok:
+        return response.json().get("response", "").strip()
+    else:
+        print("Error communicating with local LLM:", response.status_code, response.text)
+        return ""
+
+def load_config():
+    with open("config.yaml", "r") as f:
+        return yaml.safe_load(f)
+
+def read_from_journalctl(priority, entries):
+    cmd = ["journalctl", "-p", priority, "-n", str(entries), "--output", "json"]
+    try:
+        result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True)
+        lines = result.stdout.strip().split("\n")
+        logs = [json.loads(line) for line in lines if line.strip()]
+        return logs
+    except subprocess.CalledProcessError as e:
+        print("Error reading from journalctl:", e.stderr)
+        return []
+
+def read_from_file(path, entries):
+    if not os.path.exists(path):
+        print(f"Log file {path} does not exist.")
+        return []
+    with open(path, "r") as f:
+        lines = f.readlines()[-entries:]
+    return [{"__REALTIME_TIMESTAMP": str(datetime.now()), "MESSAGE": line.strip()} for line in lines]
+
+def filter_messages(logs):
+    return [entry["MESSAGE"] for entry in logs if "MESSAGE" in entry]
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="LogWhisperer - AI-powered log summarizer")
+    parser.add_argument("--source", choices=["journalctl", "file"], help="Log source")
+    parser.add_argument("--logfile", help="Path to log file (if source is 'file')")
+    parser.add_argument("--entries", type=int, help="Number of log entries to analyze")
+    parser.add_argument("--priority", help="Journalctl priority (e.g., err, warning)")
+    parser.add_argument("--model", default="mistral", help="LLM model name for summarization (default: mistral)")
+    parser.add_argument("--version", action="store_true", help="Show the current version of LogWhisperer")
+    return parser.parse_args()
+
+def main():
+    config = load_config()
+    args = parse_args()
+    source = args.source or config.get("source", "journalctl")
+    entries = args.entries or config.get("entries", 500)
+    priority = args.priority or config.get("priority", "err")
+    logfile = args.logfile or config.get("log_file_path", "/var/log/syslog")
+    model = args.model or "mistral"
+
+    if args.version:
+        print(f"Logwhisperer version {__version__}")
+        sys.exit(0)
+
+    if source == "journalctl":
+        logs = read_from_journalctl(priority, entries)
+    elif source == "file":
+        logs = read_from_file(path, entries)
+    else:
+        print("Invalid source: must be 'journalctl' or 'file'")
+        sys.exit(1)
+
+    messages = filter_messages(logs)
+
+    if not messages:
+        print("No log messages found.")
+        sys.exit(0)
+
+    print(f"\n🧠 {len(messages)} log entries retrieved.\n")
+
+    spinner = Spinner("Summarizing log entries")
+    spinner.start()
+    try:
+        summary = summarize_logs_with_ollama(messages)
+    finally:
+        spinner.stop()
+
+    print("✅ Done!\n")
+    print("📋 Summary:\n")
+    print(summary)
+    save_summary_to_markdown(summary, messages)
+
+
+if __name__ == "__main__":
+    main()
+
