@@ -1,9 +1,5 @@
 # LogWhisperer
 
-Join my discord for support or community!
-
-https://discord.gg/KureHBHKgx
-
 LogWhisperer is a self-hosted, AI-powered log summarization tool for Linux servers.  
 It uses local LLMs like [Mistral](https://ollama.com/library/mistral) or [Phi](https://ollama.com/library/phi) via [Ollama](https://ollama.com) to interpret and summarize system logs — no cloud APIs or tokens required.
 
