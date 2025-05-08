@@ -109,13 +109,36 @@ def filter_messages(logs):
     return [entry["MESSAGE"] for entry in logs if "MESSAGE" in entry]
 
 def try_generate_with_retry(prompt, model, host, timeout):
+    # First attempt
     try:
         return summarize_logs_with_ollama(prompt, model=model, host=host, timeout=timeout)
     except requests.exceptions.ReadTimeout:
-        print("First request timed out — retrying once after delay...")
-        time.sleep(3)
+        print("First request timed out — triggering model warm-up...")
+        
+        dummy_prompt = prompt[:200] 
+        try:
+            _ = summarize_logs_with_ollama(dummy_prompt, model=model, host=host, timeout=timeout)
+            print("Model warm-up complete. Retrying full prompt...")
+        except Exception as e:
+            print("Warm-up failed:", e)
+
+        time.sleep(2)
         return summarize_logs_with_ollama(prompt, model=model, host=host, timeout=timeout)
 
+def force_model_load(host, model):
+    try:
+        print(f"Ensuring model '{model}' is loaded...")
+        response = requests.post(
+            f"{host}/api/show",
+            json={"name": model},
+            timeout=10
+        )
+        if response.ok:
+            print("Model is ready.\n")
+        else:
+            print(f"Model info check failed: {response.status_code}")
+    except requests.RequestException as e:
+        print(f"Failed to contact Ollama API: {e}")
 
 
 def parse_args():
@@ -169,7 +192,6 @@ def main():
     print(f"Ollama host: {ollama_host}")
     print(f"Timeout: {timeout}s\n")
 
-
     if args.version:
         print(f"Logwhisperer version {__version__}")
         sys.exit(0)
@@ -196,17 +218,16 @@ def main():
         if not args.follow:
             print("No log messages found.")
             sys.exit(0)
-    else:
+    elif not args.follow:
         print(f"\n{len(messages)} log entries retrieved.\n")
 
     if args.follow:
         run_follow_loop(config, args, source, entries, priority, logfile, model, ollama_host, timeout)
         return
 
-
-    print(f"\n{len(messages)} log entries retrieved.\n")
-
     prompt = build_prompt(messages, config)
+    print(f"Prompt length: {len(prompt)} characters")
+    force_model_load(ollama_host, model)
     spinner = Spinner("Summarizing log entries")
     spinner.start()
     try:
