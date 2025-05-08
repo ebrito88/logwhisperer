@@ -163,6 +163,13 @@ ollama pull phi
 
 ---
 
+## Legal Disclaimer
+
+This project was developed independently by the author on personal time, using personal equipment, and without the use of employer-owned resources or intellectual property.  
+It is not affiliated with or endorsed by any current or former employer.  
+All rights to this software are retained by the author under the terms specified in the LICENSE file.
+---
+
 ## Support
 
 If LogWhisperer saves you time or headaches, consider:
