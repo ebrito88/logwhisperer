@@ -147,13 +147,14 @@ def parse_args():
     parser.add_argument("--logfile", help="Path to log file (if source is 'file')")
     parser.add_argument("--entries", type=int, help="Number of log entries to analyze")
     parser.add_argument("--priority", help="Journalctl priority (e.g., err, warning)")
-    parser.add_argument("--model", default="mistral", help="LLM model name for summarization (default: mistral)")
+    parser.add_argument("--model", help="LLM model name for summarization (default: mistral)")
     parser.add_argument("--version", action="store_true", help="Show the current version of LogWhisperer")
     parser.add_argument("--container", help="Docker container name (if source is 'docker')")
     parser.add_argument("--ollama-host", help="Override Ollama server address (default: from config.yaml or localhost)")
     parser.add_argument("--timeout", type=int, help="Request timeout in seconds (overrides config.yaml)")
     parser.add_argument("--follow", action="store_true", help="Continuously summarize logs at intervals")
     parser.add_argument("--interval", type=int, default=60, help="Interval in seconds between summaries (used with --follow)")
+    parser.add_argument("--list-models", action="store_true", help="List available models from Ollama and exit")
     return parser.parse_args()
 
 def read_from_docker_logs(container, entries=500):
@@ -168,6 +169,46 @@ def read_from_docker_logs(container, entries=500):
         print("Error reading Docker logs:", e.stderr)
         return []
 
+def list_available_models(host, silent=False):
+    try:
+        response = requests.get(f"{host}/api/tags", timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        models = [model.get("name") for model in data.get("models", [])]
+        if not silent:
+            print("Available Ollama Models:")
+            for name in models:
+                print(f"- {name}")
+        return models
+    except requests.RequestException as e:
+        print("Failed to fetch models from Ollama:", e)
+        return []
+
+def is_model_available(host, model):
+    try:
+        response = requests.post(
+            f"{host}/api/show",
+            json={"name": model},
+            timeout=10
+        )
+        return response.status_code == 200
+    except requests.RequestException:
+        return False
+
+def pull_model(host, model):
+    print(f"Pulling model '{model}' from Ollama...")
+    try:
+        response = requests.post(
+            f"{host}/api/pull",
+            json={"name": model},
+            timeout=120
+        )
+        response.raise_for_status()
+        print("Model pulled successfully.\n")
+        return True
+    except requests.RequestException as e:
+        print(f"Failed to pull model '{model}':", e)
+        return False
 
 def main():
     config = load_config()
@@ -177,8 +218,18 @@ def main():
     entries = args.entries or config.get("entries", 500)
     priority = args.priority or config.get("priority", "err")
     logfile = args.logfile or config.get("log_file_path", "/var/log/syslog")
-    model = args.model or "mistral"
     ollama_host = args.ollama_host or config.get("ollama_host", "http://localhost:11434")
+    model = args.model or config.get("model", "mistral")
+
+    if args.list_models:
+        list_available_models(ollama_host)
+        sys.exit(0)
+
+    if not is_model_available(ollama_host, model):
+        print(f"Model '{model}' is not installed. Attempting to pull from Ollama...")
+        if not pull_model(ollama_host, model):
+            print("Could not install required model. Exiting.")
+            sys.exit(1)
 
     print("Configuration:")
     print(f"Source: {source}")
@@ -190,6 +241,7 @@ def main():
     elif source == "docker":
         print(f"Docker container: {args.container or config.get('docker_container')}")
     print(f"Ollama host: {ollama_host}")
+    print(f"Model: {model}")
     print(f"Timeout: {timeout}s\n")
 
     if args.version:
@@ -207,9 +259,8 @@ def main():
             print("Docker container name must be provided via --container or config.yaml")
             sys.exit(1)
         logs = read_from_docker_logs(container, entries)
-
     else:
-        print("Invalid source: must be 'journalctl' or 'file'")
+        print("Invalid source: must be 'journalctl', 'file', or 'docker'")
         sys.exit(1)
 
     messages = filter_messages(logs)
@@ -227,7 +278,9 @@ def main():
 
     prompt = build_prompt(messages, config)
     print(f"Prompt length: {len(prompt)} characters")
+
     force_model_load(ollama_host, model)
+
     spinner = Spinner("Summarizing log entries")
     spinner.start()
     try:

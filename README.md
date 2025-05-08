@@ -64,14 +64,23 @@ python3 logwhisperer.py --follow --interval 60
 LogWhisperer supports a fully configurable YAML file:
 
 ```yaml
-source: journalctl            # or "file", "docker"
-log_file_path: /var/log/syslog
-priority: err                 # journalctl log level: emerg, alert, crit, err, warning, etc.
-entries: 500
-timeout: 90                   # request timeout (seconds)
-ollama_host: http://localhost:11434
-docker_container: my_container
-
+# Available models from Ollama:
+# - mistral
+# - llama2
+# - codellama
+# - phi
+# - gemma
+# - tinyllama
+# - dolphin-mixtral
+# - or your own custom pulled model name
+model: mistral
+source: journalctl  # or "file", "docker"
+log_file_path: /var/log/syslog  # only used if source == file
+priority: err       # journalctl log level: emerg, alert, crit, err, warning, notice, info, debug
+entries: 500       # number of log entries to fetch
+timeout: 90         # number of seconds before LLM timeout
+docker_container: my_container # this can be a name or an id like 'f77ec9ab2112'
+ollama_host: http://localhost:11434 # if you're running a remote ollama, change this.
 prompt: |
   You are a helpful Linux operations assistant. Analyze the following logs:
   - Identify root causes
