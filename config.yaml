@@ -1,7 +1,13 @@
-# config.yaml
-
 source: journalctl  # or "file", "docker"
 log_file_path: /var/log/syslog  # only used if source == file
 priority: err       # journalctl log level: emerg, alert, crit, err, warning, notice, info, debug
 entries: 500        # number of log entries to fetch
 docker_container: my_container
+prompt: |
+  You are a helpful Linux operations assistant. Analyze the following logs:
+  - Identify root causes
+  - Summarize key issues
+  - Recommend next steps
+
+  LOGS:
+  {{LOGS}}

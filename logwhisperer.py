@@ -27,27 +27,36 @@ def save_summary_to_markdown(summary, messages):
 
     print(f"\n📁 Summary saved to `{filepath}`")
 
-def summarize_logs_with_ollama(messages, model="mistral"):
-    prompt = (
+def build_prompt(messages, config):
+    joined_logs = "\n".join(messages[-50:])
+    raw_template = config.get("prompt", None)
+    if raw_template:
+        return raw_template.replace("{{LOGS}}", joined_logs)
+
+    # Default prompt
+    return (
         "You are a helpful Linux operations assistant. Summarize the following system log entries, "
-        "identify likely causes of errors, and recommend next steps if possible.\n\n"
-        + "\n".join(messages[-50:])  # last 50 messages
+        "identify likely causes of errors, and recommend next steps if possible.\n\n" + joined_logs
     )
 
-    response = requests.post(
-        "http://localhost:11434/api/generate",
-        json={
-            "model": model,
-            "prompt": prompt,
-            "stream": False
-        }
-    )
 
-    if response.ok:
+def summarize_logs_with_ollama(prompt, model="mistral"):
+    try:
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": model,
+                "prompt": prompt,
+                "stream": False
+            },
+            timeout=60
+        )
+        response.raise_for_status()
         return response.json().get("response", "").strip()
-    else:
-        print("Error communicating with local LLM:", response.status_code, response.text)
-        return ""
+    except requests.RequestException as e:
+        print("Error communicating with local LLM:", e)
+        return "[Error: Could not generate summary.]"
+
 
 def load_config():
     with open("config.yaml", "r") as f:
@@ -139,7 +148,8 @@ def main():
     spinner = Spinner("Summarizing log entries")
     spinner.start()
     try:
-        summary = summarize_logs_with_ollama(messages)
+        prompt = build_prompt(messages, config)
+        summary = summarize_logs_with_ollama(prompt, model=model)
     finally:
         spinner.stop()
 
