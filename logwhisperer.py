@@ -40,10 +40,10 @@ def build_prompt(messages, config):
     )
 
 
-def summarize_logs_with_ollama(prompt, model="mistral"):
+def summarize_logs_with_ollama(prompt, model="mistral", host="http://localhost:11434"):
     try:
         response = requests.post(
-            "http://localhost:11434/api/generate",
+            f"{host}/api/generate",
             json={
                 "model": model,
                 "prompt": prompt,
@@ -56,7 +56,6 @@ def summarize_logs_with_ollama(prompt, model="mistral"):
     except requests.RequestException as e:
         print("Error communicating with local LLM:", e)
         return "[Error: Could not generate summary.]"
-
 
 def load_config():
     with open("config.yaml", "r") as f:
@@ -93,6 +92,7 @@ def parse_args():
     parser.add_argument("--model", default="mistral", help="LLM model name for summarization (default: mistral)")
     parser.add_argument("--version", action="store_true", help="Show the current version of LogWhisperer")
     parser.add_argument("--container", help="Docker container name (if source is 'docker')")
+    parser.add_argument("--ollama-host", help="Override Ollama server address (default: from config.yaml or localhost)")
     return parser.parse_args()
 
 def read_from_docker_logs(container, entries=500):
@@ -149,7 +149,8 @@ def main():
     spinner.start()
     try:
         prompt = build_prompt(messages, config)
-        summary = summarize_logs_with_ollama(prompt, model=model)
+        ollama_host = args.ollama_host or config.get("ollama_host", "http://localhost:11434")
+        summary = summarize_logs_with_ollama(prompt, model=model, host=ollama_host)
     finally:
         spinner.stop()
 

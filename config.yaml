@@ -3,6 +3,7 @@ log_file_path: /var/log/syslog  # only used if source == file
 priority: err       # journalctl log level: emerg, alert, crit, err, warning, notice, info, debug
 entries: 500        # number of log entries to fetch
 docker_container: my_container
+ollama_host: http://localhost:11434
 prompt: |
   You are a helpful Linux operations assistant. Analyze the following logs:
   - Identify root causes
