@@ -1,4 +1,4 @@
-# 🔍 LogWhisperer
+# LogWhisperer
 
 **LogWhisperer** is a self-hosted, AI-powered log summarizer for Linux systems. It uses local LLMs (via [Ollama](https://ollama.com)) like [Mistral](https://ollama.com/library/mistral) or [Phi](https://ollama.com/library/phi) to analyze system logs and generate concise summaries — entirely offline, with zero cloud dependency.
 
@@ -130,7 +130,7 @@ reports/log_summary_2025-05-08_14-15-01.md
 
 ---
 
-## 📦 Coming Soon (Planned Features)
+## Coming Soon (Planned Features)
 
 - Output format options: `json`, `txt`, `md`
 - Custom alert pattern matching
@@ -140,8 +140,14 @@ reports/log_summary_2025-05-08_14-15-01.md
 
 ---
 
-## 🤝 Contributing
+## Support
 
-Buy me a coffee if this is helpful! https://buymeacoffee.com/binaryknight
+If LogWhisperer saves you time or headaches, consider [sponsoring me on GitHub](https://github.com/sponsors/binary-knight) to support future development.
+
+or buy me a coffee! https://buymeacoffee.com/binaryknight
+
+---
+
+## Contributing
 
 Pull requests, ideas, and feedback are welcome. If you're using LogWhisperer in production or want to contribute features, feel free to open an issue or fork the project.
