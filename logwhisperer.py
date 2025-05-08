@@ -2,6 +2,7 @@ import yaml
 import subprocess
 import json
 import os
+import time
 import sys
 import argparse
 import requests
@@ -25,7 +26,7 @@ def save_summary_to_markdown(summary, messages):
         for msg in messages[-100:]:
             f.write(f"- {msg}\n")
 
-    print(f"\n📁 Summary saved to `{filepath}`")
+    print(f"\nSummary saved to `{filepath}`")
 
 def build_prompt(messages, config):
     joined_logs = "\n".join(messages[-50:])
@@ -39,6 +40,30 @@ def build_prompt(messages, config):
         "identify likely causes of errors, and recommend next steps if possible.\n\n" + joined_logs
     )
 
+def run_follow_loop(config, args, source, entries, priority, logfile, model, ollama_host, timeout):
+    print(f"Starting follow mode — summarizing every {args.interval}s\n")
+    while True:
+        if source == "journalctl":
+            logs = read_from_journalctl(priority, entries)
+        elif source == "file":
+            logs = read_from_file(logfile, entries)
+        elif source == "docker":
+            container = args.container or config.get("docker_container")
+            if not container:
+                print("Docker container name must be provided via --container or config.yaml")
+                return
+            logs = read_from_docker_logs(container, entries)
+        else:
+            print("Invalid source.")
+            return
+
+        messages = filter_messages(logs)
+        if messages:
+            prompt = build_prompt(messages, config)
+            summary = try_generate_with_retry(prompt, model=model, host=ollama_host, timeout=timeout)
+            save_summary_to_markdown(summary, messages)
+
+        time.sleep(args.interval)
 
 def summarize_logs_with_ollama(prompt, model="mistral", host="http://localhost:11434", timeout=60):
     try:
@@ -104,6 +129,8 @@ def parse_args():
     parser.add_argument("--container", help="Docker container name (if source is 'docker')")
     parser.add_argument("--ollama-host", help="Override Ollama server address (default: from config.yaml or localhost)")
     parser.add_argument("--timeout", type=int, help="Request timeout in seconds (overrides config.yaml)")
+    parser.add_argument("--follow", action="store_true", help="Continuously summarize logs at intervals")
+    parser.add_argument("--interval", type=int, default=60, help="Interval in seconds between summaries (used with --follow)")
     return parser.parse_args()
 
 def read_from_docker_logs(container, entries=500):
@@ -166,8 +193,16 @@ def main():
     messages = filter_messages(logs)
 
     if not messages:
-        print("No log messages found.")
-        sys.exit(0)
+        if not args.follow:
+            print("No log messages found.")
+            sys.exit(0)
+    else:
+        print(f"\n{len(messages)} log entries retrieved.\n")
+
+    if args.follow:
+        run_follow_loop(config, args, source, entries, priority, logfile, model, ollama_host, timeout)
+        return
+
 
     print(f"\n{len(messages)} log entries retrieved.\n")
 
