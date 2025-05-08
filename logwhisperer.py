@@ -83,6 +83,16 @@ def read_from_file(path, entries):
 def filter_messages(logs):
     return [entry["MESSAGE"] for entry in logs if "MESSAGE" in entry]
 
+def try_generate_with_retry(prompt, model, host, timeout):
+    try:
+        return summarize_logs_with_ollama(prompt, model=model, host=host, timeout=timeout)
+    except requests.exceptions.ReadTimeout:
+        print("First request timed out — retrying once after delay...")
+        time.sleep(3)
+        return summarize_logs_with_ollama(prompt, model=model, host=host, timeout=timeout)
+
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="LogWhisperer - AI-powered log summarizer")
     parser.add_argument("--source", choices=["journalctl", "file", "docker"], help="Log source")
@@ -161,11 +171,11 @@ def main():
 
     print(f"\n{len(messages)} log entries retrieved.\n")
 
+    prompt = build_prompt(messages, config)
     spinner = Spinner("Summarizing log entries")
     spinner.start()
     try:
-        prompt = build_prompt(messages, config)
-        summary = summarize_logs_with_ollama(prompt, model=model, host=ollama_host, timeout=timeout)
+        summary = try_generate_with_retry(prompt, model=model, host=ollama_host, timeout=timeout)
     finally:
         spinner.stop()
 
@@ -173,6 +183,7 @@ def main():
     print("Summary:\n")
     print(summary)
     save_summary_to_markdown(summary, messages)
+
 
 
 if __name__ == "__main__":
