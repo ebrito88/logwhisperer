@@ -8,13 +8,13 @@
 
 - Summarizes logs using a local LLM  
 - Supports `journalctl`, raw log files, and Docker container logs  
+- Automatically pulls missing models via Ollama  
 - `--follow` mode: live log monitoring & auto-summarization  
 - Saves human-readable summaries in Markdown format  
 - Prompt customization via `config.yaml`  
-- Works fully offline (after initial install) — no API keys  
-- One-line installer with automatic environment + model setup  
-- Configurable Ollama host, timeout, and model  
-- Ideal for air-gapped, self-hosted, or private environments  
+- Works fully offline after initial model pull  
+- One-line installer with virtualenv, dependency setup, and Ollama integration  
+- Configurable model, host, and timeout — ideal for air-gapped or private deployments  
 
 ---
 
@@ -27,13 +27,13 @@ chmod +x install_logwhisperer.sh
 ./install_logwhisperer.sh
 ```
 
-> This sets up a virtual environment, installs dependencies, installs Ollama (if needed), and pulls your selected model.
+> This sets up a virtual environment, installs dependencies, sets up Ollama, and pulls your selected model (if not already installed).
 
 ---
 
 ## Usage Examples
 
-### 🔹 Basic Run (default to journalctl)
+### 🔹 Basic Run (uses `journalctl` and model from config)
 
 ```bash
 python3 logwhisperer.py
@@ -72,15 +72,15 @@ LogWhisperer supports a fully configurable YAML file:
 # - gemma
 # - tinyllama
 # - dolphin-mixtral
-# - or your own custom pulled model name
-model: mistral
-source: journalctl  # or "file", "docker"
+# - or your own pulled/custom model
+model: phi
+source: journalctl        # or "file", "docker"
 log_file_path: /var/log/syslog  # only used if source == file
-priority: err       # journalctl log level: emerg, alert, crit, err, warning, notice, info, debug
-entries: 500       # number of log entries to fetch
-timeout: 90         # number of seconds before LLM timeout
-docker_container: my_container # this can be a name or an id like 'f77ec9ab2112'
-ollama_host: http://localhost:11434 # if you're running a remote ollama, change this.
+priority: err             # journalctl log level: emerg, alert, crit, err, warning, etc.
+entries: 500              # number of log entries to fetch
+timeout: 90               # number of seconds before LLM timeout
+docker_container: my_container  # container name or ID
+ollama_host: http://localhost:11434  # change if using remote Ollama
 prompt: |
   You are a helpful Linux operations assistant. Analyze the following logs:
   - Identify root causes
@@ -91,11 +91,15 @@ prompt: |
   {{LOGS}}
 ```
 
+> The model defined here is used by default and will be pulled automatically if not found.
+
 ---
 
 ## Custom Prompts
 
-You can fully define how the model interprets your logs via the `prompt` field in `config.yaml`, using `{{LOGS}}` as a placeholder for the actual log content.
+Customize how logs are interpreted using the `prompt:` field in `config.yaml`.
+
+Use `{{LOGS}}` as a placeholder for the actual log content injected at runtime.
 
 ---
 
@@ -104,21 +108,22 @@ You can fully define how the model interprets your logs via the `prompt` field i
 | Flag               | Description                                      |
 |--------------------|--------------------------------------------------|
 | `--source`         | `journalctl`, `file`, or `docker`               |
-| `--logfile`        | Path to a file if using `--source file`         |
-| `--container`      | Docker container name if using `--source docker`|
-| `--entries`        | Number of log entries to include                |
-| `--model`          | Ollama model to use (default: `mistral`)        |
-| `--ollama-host`    | Override Ollama server URL                      |
-| `--timeout`        | Request timeout in seconds                      |
-| `--follow`         | Enables continuous summarization mode           |
-| `--interval`       | Interval between summaries (used with `--follow`)|
-| `--version`        | Print version and exit                          |
+| `--logfile`        | Path to a file (if `source` is `file`)          |
+| `--container`      | Docker container name or ID (if `source` is `docker`) |
+| `--entries`        | Number of log entries to analyze                |
+| `--model`          | Override model name (else uses `config.yaml`)   |
+| `--ollama-host`    | Override Ollama API URL                         |
+| `--timeout`        | Request timeout (in seconds)                    |
+| `--follow`         | Enable continuous summarization mode            |
+| `--interval`       | Seconds between summaries (used with `--follow`)|
+| `--list-models`    | Show models currently installed in Ollama       |
+| `--version`        | Show version number and exit                    |
 
 ---
 
 ## Output
 
-Summaries are saved to the `reports/` directory as timestamped `.md` files:
+Summaries are saved in the `reports/` directory with timestamped `.md` filenames:
 
 ```
 reports/log_summary_2025-05-08_14-15-01.md
@@ -128,35 +133,46 @@ reports/log_summary_2025-05-08_14-15-01.md
 
 ## Troubleshooting
 
-- If you see `venv not found` errors, try:
-  ```bash
-  sudo apt install python3-venv
-  rm -rf venv
-  ./install_logwhisperer.sh
-  ```
+- **Missing virtualenv or pip issues?**
 
-- If you're on **WSL**, `journalctl` likely won’t work — set your source to `"file"` in `config.yaml` or via CLI.
+```bash
+sudo apt install python3-venv
+rm -rf venv
+./install_logwhisperer.sh
+```
+
+- **On WSL?**  
+  `journalctl` won’t work — use `source: file` in your config or pass `--source file`.
+
+- **Model not found?**  
+  LogWhisperer now **auto-pulls missing models**. If that fails (e.g., offline), you can pull manually:
+
+```bash
+ollama pull phi
+```
 
 ---
 
-## Coming Soon (Planned Features)
+## Coming Soon
 
-- Output format options: `json`, `txt`, `md`
-- Custom alert pattern matching
-- PyPI release for `pip install logwhisperer`
-- Scheduled summaries via cron or systemd
-- Offline Mode, fully encapsulated offline installs
+- Output format options: `json`, `txt`, `md`  
+- Scheduled summaries via `cron` or `systemd`  
+- Pattern matching and alert triggers  
+- PyPI packaging (`pip install logwhisperer`)  
+- Fully air-gapped installer with pre-bundled models  
 
 ---
 
 ## Support
 
-If LogWhisperer saves you time or headaches, consider [sponsoring me on GitHub](https://github.com/sponsors/binary-knight) to support future development.
+If LogWhisperer saves you time or headaches, consider:
 
-or buy me a coffee! https://buymeacoffee.com/binaryknight
+- [Sponsoring me on GitHub](https://github.com/sponsors/binary-knight) 🙏  
+- Or [buy me a coffee](https://buymeacoffee.com/binaryknight) ☕
 
 ---
 
 ## Contributing
 
-Pull requests, ideas, and feedback are welcome. If you're using LogWhisperer in production or want to contribute features, feel free to open an issue or fork the project.
+Pull requests, feedback, and bug reports are welcome.  
+If you’re using LogWhisperer in production or have ideas, feel free to open an issue or submit a PR.
