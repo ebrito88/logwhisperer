@@ -40,7 +40,7 @@ def build_prompt(messages, config):
     )
 
 
-def summarize_logs_with_ollama(prompt, model="mistral", host="http://localhost:11434"):
+def summarize_logs_with_ollama(prompt, model="mistral", host="http://localhost:11434", timeout=60):
     try:
         response = requests.post(
             f"{host}/api/generate",
@@ -93,6 +93,7 @@ def parse_args():
     parser.add_argument("--version", action="store_true", help="Show the current version of LogWhisperer")
     parser.add_argument("--container", help="Docker container name (if source is 'docker')")
     parser.add_argument("--ollama-host", help="Override Ollama server address (default: from config.yaml or localhost)")
+    parser.add_argument("--timeout", type=int, help="Request timeout in seconds (overrides config.yaml)")
     return parser.parse_args()
 
 def read_from_docker_logs(container, entries=500):
@@ -111,11 +112,26 @@ def read_from_docker_logs(container, entries=500):
 def main():
     config = load_config()
     args = parse_args()
+    timeout = args.timeout or config.get("timeout", 60)
     source = args.source or config.get("source", "journalctl")
     entries = args.entries or config.get("entries", 500)
     priority = args.priority or config.get("priority", "err")
     logfile = args.logfile or config.get("log_file_path", "/var/log/syslog")
     model = args.model or "mistral"
+    ollama_host = args.ollama_host or config.get("ollama_host", "http://localhost:11434")
+
+    print("Configuration:")
+    print(f"Source: {source}")
+    print(f"Entries: {entries}")
+    if source == "journalctl":
+        print(f"Priority: {priority}")
+    elif source == "file":
+        print(f"Log file: {logfile}")
+    elif source == "docker":
+        print(f"Docker container: {args.container or config.get('docker_container')}")
+    print(f"Ollama host: {ollama_host}")
+    print(f"Timeout: {timeout}s\n")
+
 
     if args.version:
         print(f"Logwhisperer version {__version__}")
@@ -149,8 +165,7 @@ def main():
     spinner.start()
     try:
         prompt = build_prompt(messages, config)
-        ollama_host = args.ollama_host or config.get("ollama_host", "http://localhost:11434")
-        summary = summarize_logs_with_ollama(prompt, model=model, host=ollama_host)
+        summary = summarize_logs_with_ollama(prompt, model=model, host=ollama_host, timeout=timeout)
     finally:
         spinner.stop()
 

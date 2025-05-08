@@ -2,6 +2,7 @@ source: journalctl  # or "file", "docker"
 log_file_path: /var/log/syslog  # only used if source == file
 priority: err       # journalctl log level: emerg, alert, crit, err, warning, notice, info, debug
 entries: 500        # number of log entries to fetch
+timeout: 90         # number of seconds before LLM timeout
 docker_container: my_container
 ollama_host: http://localhost:11434
 prompt: |
