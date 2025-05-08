@@ -73,7 +73,7 @@ LogWhisperer supports a fully configurable YAML file:
 # - tinyllama
 # - dolphin-mixtral
 # - or your own pulled/custom model
-model: phi
+model: mistral
 source: journalctl        # or "file", "docker"
 log_file_path: /var/log/syslog  # only used if source == file
 priority: err             # journalctl log level: emerg, alert, crit, err, warning, etc.
