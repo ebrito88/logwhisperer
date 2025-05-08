@@ -77,13 +77,27 @@ def filter_messages(logs):
 
 def parse_args():
     parser = argparse.ArgumentParser(description="LogWhisperer - AI-powered log summarizer")
-    parser.add_argument("--source", choices=["journalctl", "file"], help="Log source")
+    parser.add_argument("--source", choices=["journalctl", "file", "docker"], help="Log source")
     parser.add_argument("--logfile", help="Path to log file (if source is 'file')")
     parser.add_argument("--entries", type=int, help="Number of log entries to analyze")
     parser.add_argument("--priority", help="Journalctl priority (e.g., err, warning)")
     parser.add_argument("--model", default="mistral", help="LLM model name for summarization (default: mistral)")
     parser.add_argument("--version", action="store_true", help="Show the current version of LogWhisperer")
+    parser.add_argument("--container", help="Docker container name (if source is 'docker')")
     return parser.parse_args()
+
+def read_from_docker_logs(container, entries=500):
+    try:
+        result = subprocess.run(
+            ["docker", "logs", "--tail", str(entries), container],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=True
+        )
+        lines = result.stdout.strip().splitlines()
+        return [{"MESSAGE": line} for line in lines]
+    except subprocess.CalledProcessError as e:
+        print("Error reading Docker logs:", e.stderr)
+        return []
+
 
 def main():
     config = load_config()
@@ -103,6 +117,13 @@ def main():
     elif source == "file":
         path = args.logfile or config.get("log_file_path", "/var/log/syslog")
         logs = read_from_file(path, entries)
+    elif source == "docker":
+        container = args.container or config.get("docker_container")
+        if not container:
+            print("Docker container name must be provided via --container or config.yaml")
+            sys.exit(1)
+        logs = read_from_docker_logs(container, entries)
+
     else:
         print("Invalid source: must be 'journalctl' or 'file'")
         sys.exit(1)
